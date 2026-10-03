@@ -1,0 +1,201 @@
+.\" Manpage for jool's session synchronization daemon.
+
+.TH joold 8 2026-01-26 v4.1.15 "NAT64 Jool's Session Synchronization Daemon"
+
+.SH NAME
+joold - Userspace Session Synchronization (SS) daemon for NAT64 Jool.
+
+.SH DESCRIPTION
+This command is deprecated, and it's now implemented as a wrapper for
+.B jool session proxy.
+See jool(8).
+
+.SH SYNTAX
+.RI "joold [" NETSOCKET "] [" MODSOCKET "] [PORT]"
+
+.SH OPTIONS
+.IP NETSOCKET
+Path to JSON file containing the network socket's configuration.
+.br
+Defaults to "netsocket.json".
+
+.IP MODSOCKET
+Path to JSON file containing the Netlink socket's configuration.
+.br
+Defaults to "modsocket.json".
+
+.IP PORT
+If present, starts an UDP server bound to port PORT, where the daemon serves stat counters.
+
+.SH NETWORK SOCKET CONFIGURATION
+The file is a JSON-formatted collection of keyvalues.
+
+.IP "multicast address=<IPv6-or-IPv4-address>"
+IP Address the SS traffic will be sent to and listened from.
+.br
+Mandatory; has no default.
+
+.IP "multicast port=<port-or-service-name>"
+TCP port where the SS traffic will be sent to and listened from.
+.br
+Mandatory; has no default.
+
+.IP "in interface=<String>"
+If multicast address is IPv4, this should be one addresses from the interface where the SS traffic is expected to be received. If multicast address is IPv6, this should be the name of the interface (eg. "eth0").
+.br
+Optional. Defaults to be automatically assigned by the kernel.
+.br
+It is strongly recommended that you define this value to ensure the SS traffic does not leak through other interfaces.
+
+.IP "out interface=<String>"
+If multicast address is IPv4, this should be one addresses from the interface where the multicast traffic is expected to be sent. If multicast address is IPv6, this should be the name of the interface (eg. "eth0").
+.br
+Optional. Defaults to be automatically assigned by the kernel.
+.br
+It is strongly recommended that you define this value to ensure the SS traffic does not leak through other interfaces.
+
+.IP ttl=<INT>
+Time-to-live of packets sent out by this socket.
+
+.SH NETLINK SOCKET CONFIGURATION
+The file is a JSON-formatted collection of keyvalues.
+
+.IP instance=<String>
+Name of the instance the daemon is supposed to synchronize. It's the one you designate during
+.B jool instance add.
+.br
+The instance is expected to exist within the same network namespace the daemon is running in.
+.br
+As usual, it defaults to "default". 
+
+.SH EXAMPLES
+IPv6 version:
+.P
+	$ # All Jool instances should have the basic configuration.
+.br
+	$ jool --file same-config-as-everyone-else.json
+.br
+	$
+.br
+	$ # Configure the SS interface
+.br
+	$ ip addr add 2001:db8:ff08::4/96 dev eth0
+.br
+	$ ip link set eth0 up
+.br
+	$
+.br
+	$ # joold
+.br
+	$ cat ipv6-netsocket.json
+.br
+	  {
+.br
+		"multicast address": "ff08::db8:64:64",
+.br
+		"multicast port": "6464",
+.br
+		"in interface": "eth0",
+.br
+		"out interface": "eth0",
+.br
+		"ttl": 3
+.br
+	  }
+.br
+	$
+.br
+	$ cat modsocket.json
+.br
+	  { "instance": "default" }
+.br
+	$
+.br
+	$ joold ipv6-netsocket.json modsocket.json 45678 &
+.P
+IPv4 version:
+.P
+	$ # All Jool instances should have the basic configuration.
+.br
+	$ jool --file same-config-as-everyone-else.json
+.br
+	$
+.br
+	$ # Configure the SS interface
+.br
+	$ ip addr add 192.0.2.1/24 dev eth0
+.br
+	$ ip link set eth0 up
+.br
+	$
+.br
+	$ # joold
+.br
+	$ cat ipv4-netsocket.json
+.br
+	  {
+.br
+		"multicast address": "233.252.0.64",
+.br
+		"multicast port": "6464",
+.br
+		"in interface": "192.0.2.1",
+.br
+		"out interface": "192.0.2.1",
+.br
+		"ttl": 3
+.br
+	  }
+.br
+	$
+.br
+	$ cat modsocket.json
+.br
+	  { "instance": "default" }
+.br
+	$
+.br
+	$ joold ipv4-netsocket.json modsocket.json 45678 &
+.P
+Request stats:
+.P
+	$ echo "" | nc -u 127.0.0.1 45678
+.br
+	KERNEL_SENT_PKTS,4
+.br
+	KERNEL_SENT_BYTES,208
+.br
+	NET_RCVD_PKTS,0
+.br
+	NET_RCVD_BYTES,0
+.br
+	NET_SENT_PKTS,4
+.br
+	NET_SENT_BYTES,208
+
+.SH EXIT STATUS
+Zero on success, non-zero on failure.
+
+.SH AUTHOR
+NIC Mexico & ITESM
+
+.SH REPORTING BUGS
+https://github.com/hitechcloud-vietnam/Jool/issues
+
+.SH KNOWN BUGS
+1. Maybe the daemon should be able to automatically enable SS on the kernel module.
+.P
+To be perfectly honest, the main reason why fixing this isn't in the radar is because joold is giving me the impression that nobody is using it.
+
+.SH COPYRIGHT
+Copyright 2011 NIC Mexico.
+.br
+License: GPLv2 (GNU GPL version 2)
+.br
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+
+.SH SEE ALSO
+https://hitechcloud-vietnam.github.io/Jool/en/session-synchronization.html
+.br
+https://hitechcloud-vietnam.github.io/Jool/en/usr-flags-session.html
